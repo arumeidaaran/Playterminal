@@ -257,6 +257,18 @@ function Invoke-Player {
     }
 }
 
+function Add-MusicToPlaylist {
+    param (
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$MusicPath,
+
+        [Parameter(Position = 1)]
+        [string]$Filter = '*.mp3'
+    )
+
+    $Global:playlistPlayer += Get-ChildItem -Path "$MusicPath" -Filter $Filter   
+}
+
 if ($player) {
     $Global:player.Close()
     $Global:player = $null
@@ -288,6 +300,7 @@ $featuresPlayer = @(
     "Start-Player",
     "Suspend-Player",
     "Stop-Player",
+    "Add-MusicToPlaylist [-MusicPath] <string> [[-Filter] <string>]",
     "Resize-Volume [[-volume] <double>]"
 )
 
