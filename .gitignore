@@ -1,0 +1,34 @@
+# Ignorar diretórios e arquivos de sistema
+Thumbs.db
+ehthumbs.db
+.DS_Store
+*.tmp
+*.log
+*.out
+
+# Ignorar arquivos de backup
+*~ 
+*.bak
+
+# Ignorar arquivos gerados automaticamente
+*.pdb
+*.dll
+*.exe
+
+# Ignorar configurações específicas do usuário
+.vscode/
+*.user
+dev/
+
+# Ignorar arquivos de log
+*.log
+
+# Ignorar pastas de teste
+TestResults/
+
+# Ignorar a pasta de downloads
+bin/
+
+# Ignorar arquivos de documentação gerados automaticamente
+*.html
+*.pdf
