@@ -14,9 +14,9 @@ function Get-PreviewSong {
         throw 'Player no definido'
     }
     
-    $CurrentIndex = ($mp3PathItems | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString)
+    $CurrentIndex = ($playlistPlayer | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString)
     $songIndex = $CurrentIndex - 1
-    $song = $mp3PathItems[$songIndex].FullName
+    $song = $playlistPlayer[$songIndex].FullName
 
     return [string] $song
 }
@@ -26,9 +26,9 @@ function Get-NextSong {
         throw 'Player no definido'
     }
 
-    $CurrentIndex = ($mp3PathItems | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString)
+    $CurrentIndex = ($playlistPlayer | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString)
     $songIndex = $CurrentIndex + 1
-    $song = $mp3PathItems[$songIndex].FullName
+    $song = $playlistPlayer[$songIndex].FullName
 
     return [string] $song
 }
@@ -42,7 +42,7 @@ function Get-SongByIndex {
         throw 'Player no definido'
     }
 
-    $song = $mp3PathItems[$index-1].FullName
+    $song = $playlistPlayer[$index-1].FullName
     return [string] $song
 }
 
@@ -177,10 +177,10 @@ function Get-DisplayInformation {
     $Global:displayPlayer.CurrentSoundPath = $Global:player.Source.OriginalString
     $Global:displayPlayer.CurrentSoundTime = Get-PlaybackTime
     $Global:displayPlayer.CurrentSoundTotalTime = $Global:player.NaturalDuration.TimeSpan.TotalSeconds
-    $Global:displayPlayer.CurrentSoundTrackNumber = ($mp3PathItems | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString) + 1
+    $Global:displayPlayer.CurrentSoundTrackNumber = ($playlistPlayer | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString) + 1
     $Global:displayPlayer.CurrentSoundVolume = $Global:player.Volume
-    $Global:displayPlayer.NextSoundPath = $mp3PathItems[$Global:displayPlayer.CurrentSoundTrackNumber].FullName
-    $Global:displayPlayer.PreviewSoundPath = $mp3PathItems[$Global:displayPlayer.CurrentSoundTrackNumber - 2].FullName
+    $Global:displayPlayer.NextSoundPath = $playlistPlayer[$Global:displayPlayer.CurrentSoundTrackNumber].FullName
+    $Global:displayPlayer.PreviewSoundPath = $playlistPlayer[$Global:displayPlayer.CurrentSoundTrackNumber - 2].FullName
 }
 
 function Update-DisplayPlayer {
@@ -291,9 +291,9 @@ $featuresPlayer = @(
     "Resize-Volume [[-volume] <double>]"
 )
 
-$mp3PathItems = Get-ChildItem -Path "$MusicPath" -Filter $Filter
+$playlistPlayer = Get-ChildItem -Path "$MusicPath" -Filter $Filter
 
-if (-not $mp3PathItems) {
+if (-not $playlistPlayer) {
     throw 'No hay archivos en este camino'
 }
 
