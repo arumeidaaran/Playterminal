@@ -276,7 +276,8 @@ function Add-MusicToPlaylist {
 
 function Show-Playlist {
     $songIndex = $($Global:displayPlayer.CurrentsongTrackNumber - 1)
-    $playlist = Get-Playlist -songIndex $songIndex -offsetsong 10
+    $offsetsong = 10
+    $playlist = Get-Playlist -songIndex $songIndex -offsetsong $offsetsong
 
     $defaultBackgroundColor = [Console]::BackgroundColor
     $defaultForegroundColor = [Console]::ForegroundColor
