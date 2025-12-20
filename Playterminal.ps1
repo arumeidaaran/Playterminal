@@ -14,9 +14,9 @@ function Get-PreviewSong {
         throw 'Player no definido'
     }
     
-    $CurrentIndex = ($playlistPlayer | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString)
+    $CurrentIndex = ($Global:playlistPlayer | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString)
     $songIndex = $CurrentIndex - 1
-    $song = $playlistPlayer[$songIndex].FullName
+    $song = $Global:playlistPlayer[$songIndex].FullName
 
     return [string] $song
 }
@@ -26,9 +26,9 @@ function Get-NextSong {
         throw 'Player no definido'
     }
 
-    $CurrentIndex = ($playlistPlayer | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString)
+    $CurrentIndex = ($Global:playlistPlayer | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString)
     $songIndex = $CurrentIndex + 1
-    $song = $playlistPlayer[$songIndex].FullName
+    $song = $Global:playlistPlayer[$songIndex].FullName
 
     return [string] $song
 }
@@ -42,7 +42,7 @@ function Get-SongByIndex {
         throw 'Player no definido'
     }
 
-    $song = $playlistPlayer[$index-1].FullName
+    $song = $Global:playlistPlayer[$index-1].FullName
     return [string] $song
 }
 
@@ -174,13 +174,13 @@ function Get-DisplayInformation {
         throw 'Display no definido'
     }
 
-    $Global:displayPlayer.CurrentSoundPath = $Global:player.Source.OriginalString
-    $Global:displayPlayer.CurrentSoundTime = Get-PlaybackTime
-    $Global:displayPlayer.CurrentSoundTotalTime = $Global:player.NaturalDuration.TimeSpan.TotalSeconds
-    $Global:displayPlayer.CurrentSoundTrackNumber = ($playlistPlayer | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString) + 1
-    $Global:displayPlayer.CurrentSoundVolume = $Global:player.Volume
-    $Global:displayPlayer.NextSoundPath = $playlistPlayer[$Global:displayPlayer.CurrentSoundTrackNumber].FullName
-    $Global:displayPlayer.PreviewSoundPath = $playlistPlayer[$Global:displayPlayer.CurrentSoundTrackNumber - 2].FullName
+    $Global:displayPlayer.CurrentsongPath = $Global:player.Source.OriginalString
+    $Global:displayPlayer.CurrentsongTime = Get-PlaybackTime
+    $Global:displayPlayer.CurrentsongTotalTime = $Global:player.NaturalDuration.TimeSpan.TotalSeconds
+    $Global:displayPlayer.CurrentsongTrackNumber = ($Global:playlistPlayer | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString) + 1
+    $Global:displayPlayer.CurrentsongVolume = $Global:player.Volume
+    $Global:displayPlayer.NextsongPath = $Global:playlistPlayer[$Global:displayPlayer.CurrentsongTrackNumber].FullName
+    $Global:displayPlayer.PreviewsongPath = $Global:playlistPlayer[$Global:displayPlayer.CurrentsongTrackNumber - 2].FullName
 }
 
 function Update-DisplayPlayer {
@@ -188,24 +188,29 @@ function Update-DisplayPlayer {
 
     Write-Host `n
 
-    Write-Host "Pista actual: $($Global:displayPlayer.CurrentSoundPath)"
-    Write-Host "Número de la pista: $($Global:displayPlayer.CurrentSoundTrackNumber)"
-    Write-Host ("Tiempo transcurrido: {0:hh\:mm\:ss}" -f [TimeSpan]::FromSeconds([double]$Global:displayPlayer.CurrentSoundTime))
-    Write-Host ("Tiempo total: {0:hh\:mm\:ss}" -f [TimeSpan]::FromSeconds([double]$Global:displayPlayer.CurrentSoundTotalTime))
-    Write-Host "Volumen actual: $($Global:displayPlayer.CurrentSoundVolume * 100)%"
+    Write-Host "Pista actual: $($Global:displayPlayer.CurrentsongPath)"
+    Write-Host "Número de la pista: $($Global:displayPlayer.CurrentsongTrackNumber)"
+    Write-Host ("Tiempo transcurrido: {0:hh\:mm\:ss}" -f [TimeSpan]::FromSeconds([double]$Global:displayPlayer.CurrentsongTime))
+    Write-Host ("Tiempo total: {0:hh\:mm\:ss}" -f [TimeSpan]::FromSeconds([double]$Global:displayPlayer.CurrentsongTotalTime))
+    Write-Host "Volumen actual: $($Global:displayPlayer.CurrentsongVolume * 100)%"
 
     $Global:displayPlayer.Status = "Parado"
     if ($Global:player.Position.Ticks -ne 0) {
         $Global:displayPlayer.Status = "Reproduciendo"
     }
     Write-Host "Estado actual: $($Global:displayPlayer.Status)"
-    
     Write-Host `n
+
+    Write-Host ('-' * 40)
+    Write-Host "Playlist: "
+    Show-Playlist
+    Write-Host `n
+
     Write-Host ('-' * 40)
     Write-Host ("Opciones disponibles:`n    " + ($featuresPlayer -join "`n    "))
     Write-Host `n
-    Write-Host "Ctrl + C para salir del bucle"
 
+    Write-Host "Ctrl + C para salir del bucle"
     Write-Host `n
 }
 
@@ -214,7 +219,7 @@ function Show-DisplayPlayer {
 
     Update-DisplayPlayer
 
-    while ($Global:displayPlayer.CurrentSoundTime -lt $Global:displayPlayer.CurrentSoundTotalTime) {
+    while ($Global:displayPlayer.CurrentsongTime -lt $Global:displayPlayer.CurrentsongTotalTime) {
         $duracionAtual = [int][math]::Floor((Get-PlaybackTime))
 
         if ($duracionAtual -ne $duracion) {
@@ -246,7 +251,7 @@ function Invoke-Player {
         Show-DisplayPlayer
 
         $PlayNext = $false
-        if ($Global:displayPlayer.NextSoundPath) {
+        if ($Global:displayPlayer.NextsongPath) {
             Start-NextSong
             if (-not (Wait-StartPlayback)) {
                 throw 'La reproducción no pudo iniciarse'
@@ -269,6 +274,61 @@ function Add-MusicToPlaylist {
     $Global:playlistPlayer += Get-ChildItem -Path "$MusicPath" -Filter $Filter   
 }
 
+function Show-Playlist {
+    $songIndex = $($Global:displayPlayer.CurrentsongTrackNumber - 1)
+    $playlist = Get-Playlist -songIndex $songIndex -offsetsong 10
+
+    $defaultBackgroundColor = [Console]::BackgroundColor
+    $defaultForegroundColor = [Console]::ForegroundColor
+    $halfOffset = [System.Math]::Round($($songIndex / 2))
+    $startIndexsong = $halfOffset
+    $internalTotal = $startIndexsong + $offsetsong
+    $internalIndex = 0
+    while ($startIndexsong -lt $internalTotal) {
+        $backgroundColor = $defaultBackgroundColor
+        $forekgroundColor = $defaultForegroundColor
+
+        if($startIndexsong -eq $songIndex) {
+            $backgroundColor = 'green'
+            $forekgroundColor = 'black'
+        }
+
+        Write-Host $playlist[$internalIndex].FullName `
+            -BackgroundColor $backgroundColor `
+            -ForegroundColor $forekgroundColor
+
+        $startIndexsong++
+        $internalIndex++
+    }
+}
+
+function Get-Playlist {
+    param(
+        [int] $songIndex,
+        [int] $offsetsong
+    )
+
+    if ($null -eq $Global:playlistPlayer) {
+        throw 'Playlist no definido'
+    }
+
+    if ($offsetsong -le 0) {
+        throw 'El límite no puede ser igual o menos de cero'
+    }
+
+    $startIndexsong = 0
+    $endIndexsong = $offsetsong
+    $halfOffset = [System.Math]::Round($($songIndex / 2))
+    $startIndexsong = $halfOffset
+    $endIndexsong = $startIndexsong + $offsetsong
+
+    if ($endIndexsong -gt $Global:playlistPlayer.Length) {
+        $endIndexsong = $Global:playlistPlayer.Length
+    }
+
+    return $Global:playlistPlayer[$startIndexsong..$endIndexsong]
+}
+
 if ($player) {
     $Global:player.Close()
     $Global:player = $null
@@ -281,13 +341,13 @@ $player = New-Object System.Windows.Media.MediaPlayer
 Resize-Volume -volume 1.0
 
 $displayPlayer = [PSCustomObject]@{
-    CurrentSoundPath = $null
-    CurrentSoundTime = $null
-    CurrentSoundTotalTime = $null
-    CurrentSoundTrackNumber = $null
-    CurrentSoundVolume = $null
-    NextSoundPath = $null
-    PreviewSoundPath = $null
+    CurrentsongPath = $null
+    CurrentsongTime = $null
+    CurrentsongTotalTime = $null
+    CurrentsongTrackNumber = $null
+    CurrentsongVolume = $null
+    NextsongPath = $null
+    PreviewsongPath = $null
     Status = $null
 }
 
@@ -301,12 +361,13 @@ $featuresPlayer = @(
     "Suspend-Player",
     "Stop-Player",
     "Add-MusicToPlaylist [-MusicPath] <string> [[-Filter] <string>]",
+    "Show-Playlist",
     "Resize-Volume [[-volume] <double>]"
 )
 
 $playlistPlayer = Get-ChildItem -Path "$MusicPath" -Filter $Filter
 
-if (-not $playlistPlayer) {
+if (-not $Global:playlistPlayer) {
     throw 'No hay archivos en este camino'
 }
 
