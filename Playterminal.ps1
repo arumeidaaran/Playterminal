@@ -320,8 +320,8 @@ function Get-Playlist {
 
     $startIndexsong = 0
     $endIndexsong = $offsetsong
-    $halfOffset = [System.Math]::Round($($songIndex / 2))
-    $startIndexsong = $halfOffset
+    $halfOffset = [System.Math]::Round($($offsetsong / 2))
+    $startIndexsong = $songIndex - $halfOffset
     $endIndexsong = $startIndexsong + $offsetsong
 
     if ($endIndexsong -gt $Global:playlistPlayer.Length) {
