@@ -294,6 +294,7 @@ function Show-Playlist {
             $forekgroundColor = 'black'
         }
 
+        Write-Host "$startIndexsong | " -NoNewline
         Write-Host $playlist[$internalIndex].FullName `
             -BackgroundColor $backgroundColor `
             -ForegroundColor $forekgroundColor
