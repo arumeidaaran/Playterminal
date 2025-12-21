@@ -14,7 +14,7 @@ function Get-PreviewSong {
         throw 'Player no definido'
     }
     
-    $CurrentIndex = ($Global:playlistPlayer | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString)
+    $CurrentIndex = Get-trackNumber
     $songIndex = $CurrentIndex - 1
     $song = $Global:playlistPlayer[$songIndex].FullName
 
@@ -26,7 +26,7 @@ function Get-NextSong {
         throw 'Player no definido'
     }
 
-    $CurrentIndex = ($Global:playlistPlayer | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString)
+    $CurrentIndex = $(Get-trackNumber) - 1
     $songIndex = $CurrentIndex + 1
     $song = $Global:playlistPlayer[$songIndex].FullName
 
@@ -42,7 +42,8 @@ function Get-SongByIndex {
         throw 'Player no definido'
     }
 
-    $song = $Global:playlistPlayer[$index-1].FullName
+    $songIndex = $index - 1
+    $song = $Global:playlistPlayer[$songIndex].FullName
     return [string] $song
 }
 
@@ -55,6 +56,30 @@ function Get-PlaybackTime {
     $duracionAtual = $Global:player.Position.TotalSeconds
 
     return $duracionAtual
+}
+
+function Get-trackNumber {
+    if ($null -eq $Global:player) {
+        throw 'Player no definido'
+    }
+
+    # Eecogida el numero de la pista
+    $songIndex = $Global:displayPlayer.CurrentsongTrackNumber
+
+    return $songIndex
+}
+
+function Update-trackNumber {
+    param(
+        [int] $songIndex
+    )
+
+    if ($null -eq $Global:player) {
+        throw 'Player no definido'
+    }
+
+    # Actualiza el numero de la pista
+    $Global:displayPlayer.CurrentsongTrackNumber = $songIndex
 }
 
 function Open-File {
@@ -149,11 +174,17 @@ function Start-Song {
 function Start-NextSong {
     $song = Get-NextSong
     Start-Song -song $song
+
+    $CurrentIndex = Get-trackNumber
+    Update-trackNumber -songIndex $($CurrentIndex + 1)
 }
 
 function Start-PreviewSong {
     $song = Get-PreviewSong
     Start-Song -song $song
+
+    $CurrentIndex = Get-trackNumber
+    Update-trackNumber -songIndex $($CurrentIndex - 1)
 }
 
 function Start-SongByIndex {
@@ -163,6 +194,8 @@ function Start-SongByIndex {
 
     $song = Get-SongByIndex -index $index
     Start-Song -song $song
+
+    Update-trackNumber -songIndex $index
 }
 
 function Get-DisplayInformation {
@@ -177,10 +210,10 @@ function Get-DisplayInformation {
     $Global:displayPlayer.CurrentsongPath = $Global:player.Source.OriginalString
     $Global:displayPlayer.CurrentsongTime = Get-PlaybackTime
     $Global:displayPlayer.CurrentsongTotalTime = $Global:player.NaturalDuration.TimeSpan.TotalSeconds
-    $Global:displayPlayer.CurrentsongTrackNumber = ($Global:playlistPlayer | ForEach-Object { $_.FullName }).IndexOf($player.Source.OriginalString) + 1
+    Update-trackNumber -songIndex $(Get-trackNumber + 1)
     $Global:displayPlayer.CurrentsongVolume = $Global:player.Volume
-    $Global:displayPlayer.NextsongPath = $Global:playlistPlayer[$Global:displayPlayer.CurrentsongTrackNumber].FullName
-    $Global:displayPlayer.PreviewsongPath = $Global:playlistPlayer[$Global:displayPlayer.CurrentsongTrackNumber - 2].FullName
+    $Global:displayPlayer.NextsongPath = $Global:playlistPlayer[$(Get-trackNumber)].FullName
+    $Global:displayPlayer.PreviewsongPath = $Global:playlistPlayer[$(Get-trackNumber) - 2].FullName
 }
 
 function Update-DisplayPlayer {
@@ -189,7 +222,7 @@ function Update-DisplayPlayer {
     Write-Host `n
 
     Write-Host "Pista actual: $($Global:displayPlayer.CurrentsongPath)"
-    Write-Host "Número de la pista: $($Global:displayPlayer.CurrentsongTrackNumber)"
+    Write-Host "Número de la pista: $(Get-trackNumber + 1)"
     Write-Host ("Tiempo transcurrido: {0:hh\:mm\:ss}" -f [TimeSpan]::FromSeconds([double]$Global:displayPlayer.CurrentsongTime))
     Write-Host ("Tiempo total: {0:hh\:mm\:ss}" -f [TimeSpan]::FromSeconds([double]$Global:displayPlayer.CurrentsongTotalTime))
     Write-Host "Volumen actual: $($Global:displayPlayer.CurrentsongVolume * 100)%"
@@ -236,7 +269,9 @@ function Invoke-Player {
         Clear-Host
 
         if (-not $Global:player.naturalDuration.HasTimeSpan) {
-            Start-SongByIndex -index 1
+            $songIndex = 1
+            Start-SongByIndex -index $songIndex
+            Update-trackNumber -songIndex $songIndex
         } elseif ($Global:player.Position.Ticks -eq 0) {
             Start-Player
         } else {
@@ -275,33 +310,43 @@ function Add-MusicToPlaylist {
 }
 
 function Show-Playlist {
-    $songIndex = $($Global:displayPlayer.CurrentsongTrackNumber - 1)
+    $songIndex = Get-trackNumber
     $offsetsong = 10
-    $playlist = Get-Playlist -songIndex $songIndex -offsetsong $offsetsong
+    $playlist = Get-Playlist -songIndex $($songIndex - 1) -offsetsong $offsetsong
 
     $defaultBackgroundColor = [Console]::BackgroundColor
     $defaultForegroundColor = [Console]::ForegroundColor
-    $halfOffset = [System.Math]::Round($($songIndex / 2))
-    $startIndexsong = $halfOffset
+
+    $halfOffset = [System.Math]::Round($($offsetsong / 2))
+    $startIndexsong = $songIndex - $halfOffset
+    if ($startIndexsong -le 0) {
+        $startIndexsong = 1
+    }
+
     $internalTotal = $startIndexsong + $offsetsong
-    $internalIndex = 0
+    $displayIndex = 1
     while ($startIndexsong -lt $internalTotal) {
+
         $backgroundColor = $defaultBackgroundColor
         $forekgroundColor = $defaultForegroundColor
 
-        if($startIndexsong -eq $songIndex) {
+        if ($startIndexsong -eq $songIndex) {
             $backgroundColor = 'green'
             $forekgroundColor = 'black'
         }
 
-        Write-Host "$startIndexsong | " -NoNewline
-        Write-Host $playlist[$internalIndex].FullName `
+        Write-Host (
+            ($startIndexsong).ToString().PadRight(6) + " | "
+        ) -NoNewline
+
+        Write-Host $playlist[$displayIndex - 1].FullName `
             -BackgroundColor $backgroundColor `
             -ForegroundColor $forekgroundColor
 
         $startIndexsong++
-        $internalIndex++
+        $displayIndex++
     }
+
 }
 
 function Get-Playlist {
@@ -324,7 +369,15 @@ function Get-Playlist {
     $startIndexsong = $songIndex - $halfOffset
     $endIndexsong = $startIndexsong + $offsetsong
 
-    if ($endIndexsong -gt $Global:playlistPlayer.Length) {
+    if ($startIndexsong -lt 0) {
+        $startIndexsong = 0
+        $endIndexsong = $offsetsong
+    }
+
+    if (
+        ($endIndexsong -gt $Global:playlistPlayer.Length) -and
+        ($endIndexsong -ne $offsetsong)
+    ) {
         $endIndexsong = $Global:playlistPlayer.Length
     }
 
