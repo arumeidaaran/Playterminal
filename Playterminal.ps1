@@ -252,8 +252,10 @@ function Show-DisplayPlayer {
 
     Update-DisplayPlayer
 
-    while ($Global:displayPlayer.CurrentsongTime -lt $Global:displayPlayer.CurrentsongTotalTime) {
-        $duracionAtual = [int][math]::Floor((Get-PlaybackTime))
+    while ([math]::Floor(($Global:displayPlayer.CurrentsongTime)) -ne [math]::Floor(($Global:displayPlayer.CurrentsongTotalTime))) {
+        Get-DisplayInformation
+
+        $duracionAtual = [math]::Floor(($Global:displayPlayer.CurrentsongTime))
 
         if ($duracionAtual -ne $duracion) {
             Clear-Host
@@ -396,14 +398,14 @@ $player = New-Object System.Windows.Media.MediaPlayer
 Resize-Volume -volume 1.0
 
 $displayPlayer = [PSCustomObject]@{
-    CurrentsongPath = $null
-    CurrentsongTime = $null
-    CurrentsongTotalTime = $null
+    CurrentsongPath        = $null
+    CurrentsongTime        = $null
+    CurrentsongTotalTime   = $null
     CurrentsongTrackNumber = $null
-    CurrentsongVolume = $null
-    NextsongPath = $null
-    PreviewsongPath = $null
-    Status = $null
+    CurrentsongVolume      = $null
+    NextsongPath           = $null
+    PreviewsongPath        = $null
+    Status                 = $null
 }
 
 $featuresPlayer = @(
