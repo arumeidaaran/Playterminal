@@ -221,22 +221,22 @@ function Update-DisplayPlayer {
 
     Write-Host `n
 
-    $displayTextColor = 'Yellow'
-    Write-Host "Pista actual: " -NoNewline -ForegroundColor $displayTextColor
+    $interfaceTextColor = $Global:colorSet.InterfaceText
+    Write-Host "Pista actual: " -NoNewline -ForegroundColor $interfaceTextColor
     Write-Host $($Global:displayPlayer.CurrentsongPath)
 
-    Write-Host "Número de la pista: " -NoNewline -ForegroundColor $displayTextColor
+    Write-Host "Número de la pista: " -NoNewline -ForegroundColor $interfaceTextColor
     Write-Host $(Get-trackNumber + 1)
 
     $CurrentsongTimeFormatted = ('{0:hh\:mm\:ss}' -f [TimeSpan]::FromSeconds([double]$Global:displayPlayer.CurrentsongTime))
-    Write-Host 'Tiempo transcurrido: ' -NoNewline -ForegroundColor Yellow
+    Write-Host 'Tiempo transcurrido: ' -NoNewline -ForegroundColor $interfaceTextColor
     Write-Host $CurrentsongTimeFormatted
 
     $CurrentsongTotalTimeFormatted = ('{0:hh\:mm\:ss}' -f [TimeSpan]::FromSeconds([double]$Global:displayPlayer.CurrentsongTotalTime))
-    Write-Host 'Tiempo total: ' -NoNewline -ForegroundColor Yellow
+    Write-Host 'Tiempo total: ' -NoNewline -ForegroundColor $interfaceTextColor
     Write-Host $CurrentsongTotalTimeFormatted
 
-    Write-Host "Volumen actual: " -NoNewline -ForegroundColor $displayTextColor
+    Write-Host "Volumen actual: " -NoNewline -ForegroundColor $interfaceTextColor
     Write-Host "$($Global:displayPlayer.CurrentsongVolume * 100)%"
 
     $Global:displayPlayer.Status = "Parado"
@@ -244,21 +244,21 @@ function Update-DisplayPlayer {
         $Global:displayPlayer.Status = "Reproduciendo"
     }
 
-    Write-Host "Estado actual: " -NoNewline -ForegroundColor $displayTextColor
+    Write-Host "Estado actual: " -NoNewline -ForegroundColor $interfaceTextColor
     Write-Host $($Global:displayPlayer.Status)
     Write-Host `n
 
     Write-Host ('-' * 40)
-    Write-Host "Playlist: " -ForegroundColor $displayTextColor
+    Write-Host "Playlist: " -ForegroundColor $interfaceTextColor
     Show-Playlist
     Write-Host `n
 
     Write-Host ('-' * 40)
-    Write-Host "Opciones disponibles:" -NoNewline -ForegroundColor $displayTextColor
+    Write-Host "Opciones disponibles:" -NoNewline -ForegroundColor $interfaceTextColor
     Write-Host ("`n    " + ($featuresPlayer -join "`n    "))
     Write-Host `n
 
-    Write-Host "Ctrl + C para salir del bucle" -ForegroundColor $displayTextColor
+    Write-Host "Ctrl + C para salir del bucle" -ForegroundColor $interfaceTextColor
     Write-Host `n
 }
 
@@ -313,7 +313,6 @@ function Invoke-Player {
         }
     }
 }
-
 function Add-MusicToPlaylist {
     param (
         [Parameter(Mandatory = $true, Position = 0)]
@@ -348,8 +347,8 @@ function Show-Playlist {
         $forekgroundColor = $defaultForegroundColor
 
         if ($startIndexsong -eq $songIndex) {
-            $backgroundColor = 'green'
-            $forekgroundColor = 'black'
+            $backgroundColor = $Global:colorSet.DisplayBackground
+            $forekgroundColor = $Global:colorSet.DisplayText
         }
 
         Write-Host (
@@ -436,6 +435,13 @@ $featuresPlayer = @(
     "Show-Playlist",
     "Resize-Volume [[-volume] <double>]"
 )
+
+$colorSet = [PSCustomObject]@{
+    InterfaceText = 'Yellow'
+    InterfaceBackground = 'Black'
+    DisplayText = 'Black'
+    DisplayBackground = 'Yellow'
+}
 
 $playlistPlayer = Get-ChildItem -Path "$MusicPath" -Filter $Filter
 
