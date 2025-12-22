@@ -221,29 +221,44 @@ function Update-DisplayPlayer {
 
     Write-Host `n
 
-    Write-Host "Pista actual: $($Global:displayPlayer.CurrentsongPath)"
-    Write-Host "Número de la pista: $(Get-trackNumber + 1)"
-    Write-Host ("Tiempo transcurrido: {0:hh\:mm\:ss}" -f [TimeSpan]::FromSeconds([double]$Global:displayPlayer.CurrentsongTime))
-    Write-Host ("Tiempo total: {0:hh\:mm\:ss}" -f [TimeSpan]::FromSeconds([double]$Global:displayPlayer.CurrentsongTotalTime))
-    Write-Host "Volumen actual: $($Global:displayPlayer.CurrentsongVolume * 100)%"
+    $displayTextColor = 'Yellow'
+    Write-Host "Pista actual: " -NoNewline -ForegroundColor $displayTextColor
+    Write-Host $($Global:displayPlayer.CurrentsongPath)
+
+    Write-Host "Número de la pista: " -NoNewline -ForegroundColor $displayTextColor
+    Write-Host $(Get-trackNumber + 1)
+
+    $CurrentsongTimeFormatted = ('{0:hh\:mm\:ss}' -f [TimeSpan]::FromSeconds([double]$Global:displayPlayer.CurrentsongTime))
+    Write-Host 'Tiempo transcurrido: ' -NoNewline -ForegroundColor Yellow
+    Write-Host $CurrentsongTimeFormatted
+
+    $CurrentsongTotalTimeFormatted = ('{0:hh\:mm\:ss}' -f [TimeSpan]::FromSeconds([double]$Global:displayPlayer.CurrentsongTotalTime))
+    Write-Host 'Tiempo total: ' -NoNewline -ForegroundColor Yellow
+    Write-Host $CurrentsongTotalTimeFormatted
+
+    Write-Host "Volumen actual: " -NoNewline -ForegroundColor $displayTextColor
+    Write-Host "$($Global:displayPlayer.CurrentsongVolume * 100)%"
 
     $Global:displayPlayer.Status = "Parado"
     if ($Global:player.Position.Ticks -ne 0) {
         $Global:displayPlayer.Status = "Reproduciendo"
     }
-    Write-Host "Estado actual: $($Global:displayPlayer.Status)"
+
+    Write-Host "Estado actual: " -NoNewline -ForegroundColor $displayTextColor
+    Write-Host $($Global:displayPlayer.Status)
     Write-Host `n
 
     Write-Host ('-' * 40)
-    Write-Host "Playlist: "
+    Write-Host "Playlist: " -ForegroundColor $displayTextColor
     Show-Playlist
     Write-Host `n
 
     Write-Host ('-' * 40)
-    Write-Host ("Opciones disponibles:`n    " + ($featuresPlayer -join "`n    "))
+    Write-Host "Opciones disponibles:" -NoNewline -ForegroundColor $displayTextColor
+    Write-Host ("`n    " + ($featuresPlayer -join "`n    "))
     Write-Host `n
 
-    Write-Host "Ctrl + C para salir del bucle"
+    Write-Host "Ctrl + C para salir del bucle" -ForegroundColor $displayTextColor
     Write-Host `n
 }
 
