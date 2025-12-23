@@ -410,7 +410,6 @@ function Show-Playlist {
         $startIndexsong++
         $displayIndex++
     }
-
 }
 
 function Get-Playlist {
