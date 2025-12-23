@@ -364,8 +364,18 @@ function Remove-MusicToPlaylist {
 }
 
 function Show-Playlist {
+    param (
+        [Parameter(Mandatory = $false, Position = 0)]
+        [switch] $all
+    )
+
     $songIndex = Get-trackNumber
+
     $offsetsong = 10
+    if ($all) {
+        $offsetsong = $global:playlistPlayer.Count
+    }
+
     $playlist = Get-Playlist -songIndex $($songIndex - 1) -offsetsong $offsetsong
 
     $defaultBackgroundColor = [Console]::BackgroundColor
@@ -471,7 +481,7 @@ $featuresPlayer = @(
     "Stop-Player",
     "Add-MusicToPlaylist [-MusicPath] <string> [[-Filter] <string>]",
     "Remove-MusicToPlaylist [[-songIndex] <string>]",
-    "Show-Playlist",
+    "Show-Playlist [-all]",
     "Resize-Volume [[-volume] <double>]"
 )
 
