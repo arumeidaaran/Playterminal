@@ -14,7 +14,7 @@ function Get-PreviewSong {
         throw 'Playlist no definido'
     }
     
-    $CurrentIndex = Get-trackNumber
+    $CurrentIndex = $(Get-trackNumber) - 1
     $songIndex = $CurrentIndex - 1
     $song = $Global:playlistPlayer[$songIndex].FullName
 
@@ -216,8 +216,8 @@ function Get-DisplayInformation {
     $Global:displayPlayer.CurrentsongTotalTime = $Global:player.NaturalDuration.TimeSpan.TotalSeconds
     Update-trackNumber -songIndex $(Get-trackNumber + 1)
     $Global:displayPlayer.CurrentsongVolume = $Global:player.Volume
-    $Global:displayPlayer.NextsongPath = $Global:playlistPlayer[$(Get-trackNumber)].FullName
-    $Global:displayPlayer.PreviewsongPath = $Global:playlistPlayer[$(Get-trackNumber) - 2].FullName
+    $Global:displayPlayer.NextsongPath = Get-NextSong
+    $Global:displayPlayer.PreviewsongPath = Get-PreviewSong
 }
 
 function Update-DisplayPlayer {
