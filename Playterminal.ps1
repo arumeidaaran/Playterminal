@@ -10,8 +10,8 @@ param (
 Add-Type -AssemblyName PresentationCore
 
 function Get-PreviewSong {
-    if ($null -eq $Global:player) {
-        throw 'Player no definido'
+    if ($null -eq $Global:playlistPlayer) {
+        throw 'Playlist no definido'
     }
     
     $CurrentIndex = Get-trackNumber
@@ -22,8 +22,8 @@ function Get-PreviewSong {
 }
 
 function Get-NextSong {
-    if ($null -eq $Global:player) {
-        throw 'Player no definido'
+    if ($null -eq $Global:playlistPlayer) {
+        throw 'Playlist no definido'
     }
 
     $CurrentIndex = $(Get-trackNumber) - 1
@@ -38,8 +38,8 @@ function Get-SongByIndex {
         [int] $index
     )
 
-    if ($null -eq $Global:player) {
-        throw 'Player no definido'
+    if ($null -eq $Global:playlistPlayer) {
+        throw 'Playlist no definido'
     }
 
     $songIndex = $index - 1
@@ -207,6 +207,10 @@ function Get-DisplayInformation {
         throw 'Display no definido'
     }
 
+    if ($null -eq $Global:playlistPlayer) {
+        throw 'Playlist no definido'
+    }
+
     $Global:displayPlayer.CurrentsongPath = $Global:player.Source.OriginalString
     $Global:displayPlayer.CurrentsongTime = Get-PlaybackTime
     $Global:displayPlayer.CurrentsongTotalTime = $Global:player.NaturalDuration.TimeSpan.TotalSeconds
@@ -218,8 +222,6 @@ function Get-DisplayInformation {
 
 function Update-DisplayPlayer {
     Get-DisplayInformation
-
-    Write-Host `n
 
     $interfaceTextColor = $Global:colorSet.InterfaceText
     Write-Host "Pista actual: " -NoNewline -ForegroundColor $interfaceTextColor
@@ -313,6 +315,7 @@ function Invoke-Player {
         }
     }
 }
+
 function Add-MusicToPlaylist {
     param (
         [Parameter(Mandatory = $true, Position = 0)]
@@ -322,7 +325,31 @@ function Add-MusicToPlaylist {
         [string]$Filter = '*.mp3'
     )
 
-    $Global:playlistPlayer += Get-ChildItem -Path "$MusicPath" -Filter $Filter   
+    if ($null -eq $Global:playlistPlayer) {
+        throw 'Playlist no definido'
+    }
+
+    # Agregar el array para la lista de las músicas
+    $Global:playlistPlayer += Get-ChildItem -Path "$MusicPath" -Filter $Filter `
+        | Where-Object {$_.FullName}
+
+    # Convertir el array a ArrayList
+    $Global:playlistPlayer = [System.Collections.ArrayList]::new(
+        $($Global:playlistPlayer | Where-Object {$_.FullName})
+    )
+}
+
+function Remove-MusicToPlaylist {
+    param (
+        [int] $songIndex
+    )
+
+    if ($null -eq $Global:playlistPlayer) {
+        throw 'Playlist no definido'
+    }
+
+    # Remover el elemento por índice
+    $global:playlistPlayer.RemoveAt($($songIndex - 1))
 }
 
 function Show-Playlist {
@@ -391,10 +418,10 @@ function Get-Playlist {
     }
 
     if (
-        ($endIndexsong -gt $Global:playlistPlayer.Length) -and
+        ($endIndexsong -gt $Global:playlistPlayer.Count) -and
         ($endIndexsong -ne $offsetsong)
     ) {
-        $endIndexsong = $Global:playlistPlayer.Length
+        $endIndexsong = $Global:playlistPlayer.Count
     }
 
     return $Global:playlistPlayer[$startIndexsong..$endIndexsong]
@@ -432,6 +459,7 @@ $featuresPlayer = @(
     "Suspend-Player",
     "Stop-Player",
     "Add-MusicToPlaylist [-MusicPath] <string> [[-Filter] <string>]",
+    "Remove-MusicToPlaylist [[-songIndex] <string>]",
     "Show-Playlist",
     "Resize-Volume [[-volume] <double>]"
 )
@@ -443,9 +471,16 @@ $colorSet = [PSCustomObject]@{
     DisplayBackground = 'Yellow'
 }
 
-$playlistPlayer = Get-ChildItem -Path "$MusicPath" -Filter $Filter
+# Crear el array para la lista de las músicas
+$playlistPlayer += Get-ChildItem -Path "$MusicPath" -Filter $Filter `
+    | Where-Object {$_.FullName}
 
-if (-not $Global:playlistPlayer) {
+# Convertir el array a ArrayList
+$playlistPlayer = [System.Collections.ArrayList]::new(
+    $($playlistPlayer | Where-Object {$_.FullName})
+)
+
+if (-not $playlistPlayer) {
     throw 'No hay archivos en este camino'
 }
 
