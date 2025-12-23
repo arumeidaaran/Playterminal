@@ -9,6 +9,17 @@ param (
 
 Add-Type -AssemblyName PresentationCore
 
+function Get-CurrentSong {
+    if ($null -eq $Global:playlistPlayer) {
+        throw 'Playlist no definido'
+    }
+    
+    $CurrentIndex = $(Get-trackNumber) - 1
+    $song = $Global:playlistPlayer[$CurrentIndex].FullName
+
+    return [string] $song
+}
+
 function Get-PreviewSong {
     if ($null -eq $Global:playlistPlayer) {
         throw 'Playlist no definido'
