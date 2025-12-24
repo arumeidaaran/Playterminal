@@ -478,6 +478,10 @@ function Invoke-Player {
             }
         }
     }
+
+    Start-Sleep -Seconds 2
+    Clear-Host
+    Show-DisplayPlayer
 }
 
 function Add-MusicToPlaylist {
