@@ -494,7 +494,7 @@ function Add-MusicToPlaylist {
     }
 
     # Agregar el array para la lista de las músicas
-    $Global:playlistPlayer += Get-ChildItem -Path "$MusicPath" -Filter $Filter `
+    $Global:playlistPlayer += Get-ChildItem -LiteralPath "$MusicPath" -Filter $Filter `
         | Where-Object {$_.FullName}
 
     # Convertir el array a ArrayList
@@ -670,7 +670,7 @@ if ($playlistPlayer) {
 
 # Crear el array para la lista de las músicas
 $playlistPlayer = @(
-    Get-ChildItem -Path "$MusicPath" -Filter $Filter `
+    Get-ChildItem -LiteralPath "$MusicPath" -Filter $Filter `
         | Where-Object {$_.FullName}
 )
 
