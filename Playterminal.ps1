@@ -25,11 +25,21 @@ function Get-PreviewSong {
         throw 'Playlist no definido'
     }
     
-    $CurrentIndex = $(Get-trackNumber) - 1
-    $songIndex = $CurrentIndex - 1
-    $song = $Global:playlistPlayer[$songIndex].FullName
+    
+    $songIndex = $(Get-PlaybackAction).SongIndex
+    if (
+        ('Deactivated' -eq $(Get-RepeatModeStatus)) -and
+        ('Deactivated' -eq $(Get-ShuffleModeStatus))
+    ) {
+        $songIndex = $songIndex - 2
+    }
 
-    return [string] $song
+    $song = $Global:playlistPlayer[$songIndex - 1].FullName
+
+    return [PSCustomObject]@{
+        Song = [string] $song
+        SongIndex = [int] $songIndex
+    }
 }
 
 function Get-NextSong {
@@ -37,11 +47,25 @@ function Get-NextSong {
         throw 'Playlist no definido'
     }
 
-    $CurrentIndex = $(Get-trackNumber) - 1
+    $CurrentIndex = Get-trackNumber
     $songIndex = $CurrentIndex + 1
     $song = $Global:playlistPlayer[$songIndex].FullName
 
     return [string] $song
+}
+
+function Update-NextSong {
+    if ($null -eq $Global:playlistPlayer) {
+        throw 'Playlist no definido'
+    }
+
+    $songIndex = $(Get-PlaybackAction).SongIndex
+    $song = $Global:playlistPlayer[$songIndex].FullName
+
+    return [PSCustomObject]@{
+        Song = [string] $song
+        SongIndex = [int] $songIndex
+    }
 }
 
 function Get-SongByIndex {
@@ -70,14 +94,54 @@ function Get-PlaybackTime {
 }
 
 function Get-trackNumber {
-    if ($null -eq $Global:player) {
-        throw 'Player no definido'
+    if ($null -eq $Global:playlistPlayer) {
+        throw 'Playlist no definido'
     }
 
     # Eecogida el numero de la pista
     $songIndex = $Global:displayPlayer.CurrentsongTrackNumber
 
     return $songIndex
+}
+
+function Get-RepeatModeStatus {
+    if ($null -eq $Global:playlistPlayer) {
+        throw 'Playlist no definido'
+    }
+
+    return $Global:displayPlayer.Repeat
+}
+
+function Set-RepeatModeStatus {
+    param (
+        [RepeatMode]$mode = [RepeatMode]::Deactivated
+    )
+
+    if ($null -eq $Global:displayPlayer) {
+        throw 'Playlist no definido'
+    }
+
+    $Global:displayPlayer.Repeat = $mode
+}
+
+function Get-ShuffleModeStatus {
+    if ($null -eq $Global:playlistPlayer) {
+        throw 'Playlist no definido'
+    }
+
+    return $Global:displayPlayer.Shuffle
+}
+
+function Set-ShuffleModeStatus {
+    param (
+        [ShuffleMode]$mode = [ShuffleMode]::Deactivated
+    )
+
+    if ($null -eq $Global:displayPlayer) {
+        throw 'Playlist no definido'
+    }
+
+    $Global:displayPlayer.Shuffle = $mode
 }
 
 function Update-trackNumber {
@@ -100,7 +164,7 @@ function Open-File {
     if ($null -eq $Global:player) {
         throw 'Player no definido'
     }
-    
+
     $Global:player.Open($([Uri]::new($uri)))
 }
 
@@ -182,20 +246,33 @@ function Start-Song {
     Start-Player
 }
 
-function Start-NextSong {
-    $song = Get-NextSong
+function Start-CurrentSong {
+    $song = Get-CurrentSong
     Start-Song -song $song
 
     $CurrentIndex = Get-trackNumber
-    Update-trackNumber -songIndex $($CurrentIndex + 1)
+    Update-trackNumber -songIndex $($CurrentIndex)
+}
+
+function Start-NextSong {
+    $songIndex = $(Update-NextSong).SongIndex
+    $song = $(Get-PreviewSong).Song
+    if ($song) {
+        Start-SongByIndex -index $songIndex
+
+        Update-trackNumber -songIndex $songIndex
+    }
 }
 
 function Start-PreviewSong {
-    $song = Get-PreviewSong
-    Start-Song -song $song
+    $songIndex = $(Get-PreviewSong).SongIndex
+    $song = $(Get-PreviewSong).Song
+    if ($song) {
+        Start-SongByIndex -index $songIndex
 
-    $CurrentIndex = Get-trackNumber
-    Update-trackNumber -songIndex $($CurrentIndex - 1)
+        $CurrentIndex = Get-trackNumber
+        Update-trackNumber -songIndex $($CurrentIndex)
+    }
 }
 
 function Start-SongByIndex {
@@ -204,9 +281,11 @@ function Start-SongByIndex {
     )
 
     $song = Get-SongByIndex -index $index
-    Start-Song -song $song
+    if ($song) {
+        Start-Song -song $song
 
-    Update-trackNumber -songIndex $index
+        Update-trackNumber -songIndex $index
+    }
 }
 
 function Get-DisplayInformation {
@@ -227,8 +306,11 @@ function Get-DisplayInformation {
     $Global:displayPlayer.CurrentsongTotalTime = $Global:player.NaturalDuration.TimeSpan.TotalSeconds
     Update-trackNumber -songIndex $(Get-trackNumber + 1)
     $Global:displayPlayer.CurrentsongVolume = $Global:player.Volume
-    $Global:displayPlayer.NextsongPath = Get-NextSong
-    $Global:displayPlayer.PreviewsongPath = Get-PreviewSong
+    $Global:displayPlayer.NextSong = $(
+        $Global:playlistPlayer.Count -ge $Global:playlistPlayerStore.Count
+    )
+    $Global:displayPlayer.Repeat = Get-RepeatModeStatus
+    $Global:displayPlayer.Shuffle = Get-ShuffleModeStatus
 }
 
 function Update-DisplayPlayer {
@@ -259,6 +341,12 @@ function Update-DisplayPlayer {
 
     Write-Host "Estado actual: " -NoNewline -ForegroundColor $interfaceTextColor
     Write-Host $($Global:displayPlayer.Status)
+
+    Write-Host "Repetir: " -NoNewline -ForegroundColor $interfaceTextColor
+    Write-Host $($Global:displayPlayer.Repeat)
+
+    Write-Host "Aleatorio: " -NoNewline -ForegroundColor $interfaceTextColor
+    Write-Host $($Global:displayPlayer.Shuffle)
     Write-Host `n
 
     Write-Host ('-' * 40)
@@ -293,9 +381,51 @@ function Show-DisplayPlayer {
     }
 }
 
+function Get-PlaybackAction {
+    $playNext = $false
+    $songIndex = 1
+    if ('Activated' -eq $(Get-RepeatModeStatus)) {
+        $songIndex = $Global:displayPlayer.CurrentsongTrackNumber
+        if ($songIndex -notin $Global:playlistPlayerStore) {
+            $Global:playlistPlayerStore.Add($songIndex)
+        }
+
+        $playNext = $true
+    } elseif ('Activated' -eq $(Get-ShuffleModeStatus)) {
+        $SuffleSongIndex = (1..($global:playlistPlayer.Count) `
+            | Where-Object {$_ -notin $Global:playlistPlayerStore}) `
+            | Get-Random 
+
+        if ($SuffleSongIndex) {
+            if ($songIndex -notin $Global:playlistPlayerStore) {
+                $Global:playlistPlayerStore.Add($songIndex)
+            }
+
+            $songIndex = $SuffleSongIndex
+        }
+
+        $playNext = $true
+        if (-not $SuffleSongIndex) {
+            $playNext = $false
+        }
+    } elseif ($Global:displayPlayer.NextSong) {
+        $songIndex = $(Get-trackNumber) + 1
+        if ($songIndex -notin $Global:playlistPlayerStore) {
+            $Global:playlistPlayerStore.Add($songIndex)
+        }
+
+        $playNext = $true
+    }
+
+    return [PSCustomObject]@{
+        PlayNext = $playNext
+        SongIndex = $songIndex
+    }
+}
+
 function Invoke-Player {
-    $PlayNext = $true
-    while ($PlayNext) {
+    $playNext = $true
+    while ($playNext) {
         Clear-Host
 
         if (-not $Global:player.naturalDuration.HasTimeSpan) {
@@ -312,17 +442,25 @@ function Invoke-Player {
             throw 'La reproducción no pudo iniciarse'
         }
 
+        if ($null -eq $(Get-RepeatModeStatus)) {
+            Set-RepeatModeStatus -mode 'Deactivated'
+        }
+
+        if ($null -eq $(Get-ShuffleModeStatus)) {
+            Set-ShuffleModeStatus -mode 'Deactivated'
+        }
 
         Show-DisplayPlayer
 
-        $PlayNext = $false
-        if ($Global:displayPlayer.NextsongPath) {
-            Start-NextSong
+        $playNext = $(Get-PlaybackAction).PlayNext
+        $songIndex = $(Get-PlaybackAction).SongIndex
+
+        if ($playNext) {
+            Start-SongByIndex -index $songIndex
+
             if (-not (Wait-StartPlayback)) {
                 throw 'La reproducción no pudo iniciarse'
             }
-
-            $PlayNext = $true
         }
     }
 }
@@ -464,9 +602,20 @@ $displayPlayer = [PSCustomObject]@{
     CurrentsongTotalTime   = $null
     CurrentsongTrackNumber = $null
     CurrentsongVolume      = $null
-    NextsongPath           = $null
-    PreviewsongPath        = $null
+    NextSong               = $null
     Status                 = $null
+    Repeat                 = $null
+    Shuffle                = $null
+}
+
+enum RepeatMode {
+    Deactivated
+    Activated
+}
+
+enum ShuffleMode {
+    Deactivated
+    Activated
 }
 
 $featuresPlayer = @(
@@ -481,7 +630,9 @@ $featuresPlayer = @(
     "Add-MusicToPlaylist [-MusicPath] <string> [[-Filter] <string>]",
     "Remove-MusicToPlaylist [[-songIndex] <string>]",
     "Show-Playlist [-all]",
-    "Resize-Volume [[-volume] <double>]"
+    "Resize-Volume [[-volume] <double>]",
+    "Set-RepeatModeStatus [[-mode] 'Deactivated' -or 'Activated']",
+    "Set-ShuffleModeStatus [[-mode] 'Deactivated' -or 'Activated']"
 )
 
 $colorSet = [PSCustomObject]@{
@@ -495,6 +646,10 @@ $colorSet = [PSCustomObject]@{
 $playlistPlayer += Get-ChildItem -Path "$MusicPath" -Filter $Filter `
     | Where-Object {$_.FullName}
 
+if (-not $playlistPlayer) {
+    throw 'No hay archivos en este camino'
+}
+
 # Convertir el array a ArrayList
 $playlistPlayer = [System.Collections.ArrayList]::new(
     $($playlistPlayer | Where-Object {$_.FullName})
@@ -503,5 +658,7 @@ $playlistPlayer = [System.Collections.ArrayList]::new(
 if (-not $playlistPlayer) {
     throw 'No hay archivos en este camino'
 }
+
+$playlistPlayerStore = [System.Collections.ArrayList]::new()
 
 Invoke-Player
