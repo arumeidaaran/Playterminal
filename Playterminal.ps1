@@ -335,8 +335,23 @@ function Update-DisplayPlayer {
     Write-Host "$($Global:displayPlayer.CurrentsongVolume * 100)%"
 
     $Global:displayPlayer.Status = "Parado"
-    if ($Global:player.Position.Ticks -ne 0) {
+    if (-not $Global:player.naturalDuration.HasTimeSpan) {
+        $Global:displayPlayer.Status = "Parado"
+    } elseif ($Global:player.Position.Ticks -eq 0) {
+        $Global:displayPlayer.Status = "Parado"
+    } elseif (
+        $Global:player.Position.Ticks -eq $Global:player.NaturalDuration.TimeSpan.Ticks
+    ) {
+        $Global:displayPlayer.Status = "Parado"
+    } else {
         $Global:displayPlayer.Status = "Reproduciendo"
+
+        $timePosition = $Global:player.Position.Ticks
+        Start-Sleep -Milliseconds 200
+        $newTimePosition = $Global:player.Position.Ticks
+        if ($timePosition -eq $newTimePosition) {
+            $Global:displayPlayer.Status = "Pausado"
+        }
     }
 
     Write-Host "Estado actual: " -NoNewline -ForegroundColor $interfaceTextColor
