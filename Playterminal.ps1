@@ -478,10 +478,6 @@ function Invoke-Player {
             }
         }
     }
-
-    Start-Sleep -Seconds 2
-    Clear-Host
-    Show-DisplayPlayer
 }
 
 function Add-MusicToPlaylist {
@@ -681,3 +677,7 @@ if (-not $playlistPlayer) {
 $playlistPlayerStore = [System.Collections.ArrayList]::new()
 
 Invoke-Player
+
+Start-Sleep -Seconds 2
+Clear-Host
+Show-DisplayPlayer
