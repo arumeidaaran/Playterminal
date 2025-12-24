@@ -657,6 +657,12 @@ $colorSet = [PSCustomObject]@{
     DisplayBackground = 'Yellow'
 }
 
+if ($playlistPlayer) {
+    $Global:playlistPlayer = $null
+    [GC]::Collect()
+    [GC]::WaitForPendingFinalizers()
+}
+
 # Crear el array para la lista de las músicas
 $playlistPlayer += Get-ChildItem -Path "$MusicPath" -Filter $Filter `
     | Where-Object {$_.FullName}
