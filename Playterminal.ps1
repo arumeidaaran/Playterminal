@@ -556,7 +556,12 @@ function Show-Playlist {
             ($startIndexsong).ToString().PadRight(6) + " | "
         ) -NoNewline
 
-        Write-Host $playlist[$displayIndex - 1].FullName `
+        $currentSong = ''
+        if ($playlist -and $playlist.Count -ge $displayIndex) {
+            $currentSong = $playlist[$displayIndex - 1].FullName
+        }
+
+        Write-Host $currentSong `
             -BackgroundColor $backgroundColor `
             -ForegroundColor $forekgroundColor
 
@@ -664,8 +669,10 @@ if ($playlistPlayer) {
 }
 
 # Crear el array para la lista de las músicas
-$playlistPlayer += Get-ChildItem -Path "$MusicPath" -Filter $Filter `
-    | Where-Object {$_.FullName}
+$playlistPlayer = @(
+    Get-ChildItem -Path "$MusicPath" -Filter $Filter `
+        | Where-Object {$_.FullName}
+)
 
 if (-not $playlistPlayer) {
     throw 'No hay archivos en este camino'
