@@ -427,9 +427,8 @@ function Get-PlaybackAction {
         $songIndex = $(Get-trackNumber) + 1
         if ($songIndex -notin $Global:playlistPlayerStore) {
             $Global:playlistPlayerStore.Add($songIndex)
+            $playNext = $true
         }
-
-        $playNext = $true
     }
 
     return [PSCustomObject]@{
@@ -477,6 +476,12 @@ function Invoke-Player {
                 throw 'La reproducción no pudo iniciarse'
             }
         }
+    }
+
+    while ($Global:displayPlayer.Status.ToString().ToUpper() -ne 'PARADO') {
+        Start-Sleep -Seconds 1
+        Clear-Host
+        Update-DisplayPlayer
     }
 }
 
@@ -691,6 +696,5 @@ $playlistPlayerStore = [System.Collections.ArrayList]::new()
 
 Invoke-Player
 
-Start-Sleep -Seconds 2
 Clear-Host
 Show-DisplayPlayer
